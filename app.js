@@ -2,25 +2,16 @@ var mysql = require("mysql");
 var mysql = require("mysql2");
 const inquirer = require("inquirer");
 const cTable = require("console.table");
+var figlet = require("figlet");
 
-console.log(`╔═════════════════════════════════════════════════════╗
-║                                                     ║
-║     _____                 _                         ║
-║    | ____|_ __ ___  _ __ | | ___  _   _  ___  ___   ║
-║    |  _| | '_ \` _ \\| '_ \\| |/ _ \\| | | |/ _ \\/ _ \\  ║
-║    | |___| | | | | | |_) | | (_) | |_| |  __/  __/  ║
-║    |_____|_| |_| |_| .__/|_|\\___/ \\__, |\\___|\\___|  ║
-║                    |_|            |___/             ║
-║                                                     ║
-║     __  __                                          ║
-║    |  \\/  | __ _ _ __   __ _  __ _  ___ _ __        ║
-║    | |\\/| |/ _\` | '_ \\ / _\` |/ _\` |\/ _ \\ '__|       ║
-║    | |  | | (_| | | | | (_| | (_| |  __/ |          ║
-║    |_|  |_|\\__,_|_| |_|\\__,_|\\__, |\\___|_|          ║
-║                              |___/                  ║
-║                                                     ║
-\╚═════════════════════════════════════════════════════╝
-`);
+figlet("EMPLOYEE  \n       MANAGER!", function (err, data) {
+  if (err) {
+    console.log("Something went wrong...");
+    console.dir(err);
+    return;
+  }
+  console.log(data);
+});
 
 var connection = mysql.createConnection({
   host: "localhost",
@@ -94,4 +85,62 @@ function initialize() {
           break;
       }
     });
+}
+
+function viewEmployees() {
+  var query =
+    "SELECT a.employee_id AS 'employee ID', a.first_name,a.last_name, role.role_type, department.department, role.salary,concat(b.first_name, ' ',b.last.name) as 'Manager Name' FROM employee a LEFT OUTER JOIN employee b ON a.manager_id = b.employee_id INNER JOIN role ON (role.role_id = a.role_id) INNER JOIN department ON (departemt.department_id = role.department_id);";
+  connection.query(query, function (err, res) {
+    if (err) throw err;
+    console.table(res);
+    initialize();
+  });
+}
+
+function viewDepartments() {
+  connection.query("SELECT * FROM department;", function (err, res) {
+    if (err) throw err;
+    console.table(res);
+    inititalize();
+  });
+}
+
+function viewRoles() {
+  connection.query("SELECT * FROM role;", function (err, res) {
+    if (err) throw err;
+    console.table(res);
+    initialize();
+  });
+}
+
+function removeEmployee() {
+  connection.query("SELECT * FROM employee;", function (err, res) {
+    if (err) throw err;
+    inquirer
+      .prompt([
+        {
+          name: "choice",
+          type: "rowlist",
+          choices: function () {
+            var choiceArray = [];
+            for (var i = 0; i < res.length; i++) {
+              choiceArray.push(res[i].first_name);
+            }
+            return choiceArray;
+          },
+          message: "Which Employee do you want to remove?",
+        },
+      ])
+      .then(function (answer) {
+        connection.query(
+          "DELETE FROM employee WHERE first_name = ?",
+          [answer.choice],
+          function (err) {
+            if (err) throw err;
+            console.log("Employee removed successfully");
+            initialize();
+          }
+        );
+      });
+  });
 }
